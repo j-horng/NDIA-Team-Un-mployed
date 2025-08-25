@@ -1,0 +1,15 @@
+﻿opencv-python
+numpy
+pyyaml
+fastapi
+uvicorn
+pydantic
+onnxruntime
+pyproj
+rasterio
+GDAL
+pymavlink
+mavsdk
+streamlit
+pytest
+ruff

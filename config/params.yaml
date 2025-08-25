@@ -1,0 +1,17 @@
+﻿aoi:
+  home_lat: 38.8895
+  home_lon: -77.0352
+  home_alt_m: 40
+tiles:
+  zooms: [17, 18]
+  max_candidates: 4
+correlation:
+  orb_nfeatures: 2000
+  orb_fast_threshold: 12
+  ransac_reproj_px: 3.0
+  min_inliers: 40
+  conf_gate: 0.6
+fusion:
+  method: gps_input
+  publish_rate_hz: 10
+  conf_gate: 0.6

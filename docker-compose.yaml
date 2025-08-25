@@ -1,0 +1,7 @@
+﻿services:
+  imagery:
+    command: uvicorn system_b.server:app --host 0.0.0.0 --port 8000
+    image: python:3.11-slim
+    working_dir: /app
+    volumes: [".:/app"]
+    ports: ["8000:8000"]
