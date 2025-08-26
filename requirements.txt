@@ -13,3 +13,4 @@ mavsdk
 streamlit
 pytest
 ruff
+requests
