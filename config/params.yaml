@@ -1,17 +1,57 @@
-﻿aoi:
+﻿# Global parameters for the ABCD pipeline
+
+aoi:
+  name: "DC Mall Demo AOI"
+  # Reference/home used by SITL and local tangent conversions
   home_lat: 38.8895
   home_lon: -77.0352
   home_alt_m: 40
+  # Path to polygon used by samplers/dashboards
+  geojson_path: "config/area_of_interest.geojson"
+
 tiles:
+  cache_root: "data/tiles"     # TMS-style: {z}/{x}/{y}.png + .json
+  dem_path: "data/dem/dem.tif" # Optional; if missing, alt fallback is used
   zooms: [17, 18]
   max_candidates: 4
+
+imagery_api:
+  host: "127.0.0.1"
+  port: 8000
+  # Full URL used by scripts (derived from host/port, override if proxied)
+  base_url: "http://127.0.0.1:8000/imagery"
+
 correlation:
+  # ORB feature extractor
   orb_nfeatures: 2000
   orb_fast_threshold: 12
+  # Geometric verification
   ransac_reproj_px: 3.0
   min_inliers: 40
-  conf_gate: 0.6
+  # Decisioning
+  conf_gate: 0.6        # C must meet/exceed to be forwarded to D
+  # (optional) PnP fallback toggles/placeholders
+  pnp_enabled: false
+  pnp_min_inliers: 25
+
 fusion:
-  method: gps_input
+  # D → PX4: recommended path is GPS_INPUT so EKF2 fuses as pseudo-GNSS
+  method: "gps_input"            # or "vision_pose"
   publish_rate_hz: 10
-  conf_gate: 0.6
+  conf_gate: 0.6                 # D will not publish below this
+  px4_url: "udpout:127.0.0.1:14540"
+  # Mapping from C’s covariance to GPS_INPUT accuracies (simple heuristic)
+  horiz_acc_min_m: 3.0
+  horiz_acc_max_m: 25.0
+  vert_acc_floor_m: 6.0
+  speed_accuracy_mps: 0.5
+  satellites_visible: 10
+
+logging:
+  level: "INFO"
+  logs_dir: "logs"
+  metrics_file: "logs/metrics.jsonl"
+
+dashboard:
+  default_zoom: 16
+  max_rows: 500

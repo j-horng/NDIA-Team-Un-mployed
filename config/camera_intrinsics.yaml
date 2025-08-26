@@ -1,8 +1,27 @@
-﻿fx: 800.0
-fy: 800.0
+﻿# Camera model for System C (OpenCV pinhole + radtan distortion)
+
+camera_id: "cam0"
+resolution:
+  width: 640
+  height: 480
+frame_rate_hz: 30
+
+# Intrinsics (pixels)
+fx: 930.0
+fy: 930.0
 cx: 320.0
 cy: 240.0
-k1: 0.0
-k2: 0.0
+skew: 0.0
+
+# Distortion (radtan / Brown–Conrady)
+model: "radtan"
+k1: -0.12
+k2: 0.03
 p1: 0.0
 p2: 0.0
+k3: 0.0
+
+# Notes:
+# - Units are pixels; coordinate convention is OpenCV (u right, v down).
+# - If you don’t have a calibration, these defaults work for development.
+# - For a different sensor size, update resolution and principal point (cx, cy).
