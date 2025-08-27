@@ -1,52 +1,81 @@
-﻿# Global parameters for the ABCD pipeline
+﻿# Global configuration for the A-PNT ABCD stack
 
+# -----------------------------
+# Area of Interest (AOI) / Reference
+# -----------------------------
 aoi:
   name: "DC Mall Demo AOI"
-  # Reference/home used by SITL and local tangent conversions
   home_lat: 38.8895
   home_lon: -77.0352
   home_alt_m: 40
-  # Path to polygon used by samplers/dashboards
+  # Used by samplers/dashboards and seed scripts
   geojson_path: "config/area_of_interest.geojson"
 
+# -----------------------------
+# Imagery / DEM
+# -----------------------------
 tiles:
-  cache_root: "data/tiles"     # TMS-style: {z}/{x}/{y}.png + .json
-  dem_path: "data/dem/dem.tif" # Optional; if missing, alt fallback is used
+  cache_root: "data/tiles"      # TMS-like: {z}/{x}/{y}.png + {y}.json
+  dem_path: "data/dem/dem.tif"  # Optional; flat fallback if missing
   zooms: [17, 18]
   max_candidates: 4
 
+# Optional external providers (checked in the given order)
+# NOTE: Google Static Maps often forbids caching/proxying. Keep disabled unless your license permits it.
+providers:
+  order: ["tiles", "google_maps"]   # server will try local tiles first, then Google (if enabled)
+  google_maps:
+    enabled: false                  # OFF by default (ToS-sensitive)
+    proxy_allowed: false            # If true, server may proxy bytes (not recommended)
+    size: "640x640"                 # logical size; actual pixels = size * scale (see google_maps.py)
+    maptype: "satellite"            # satellite|hybrid|terrain|roadmap
+    zoom_offset: 0                  # add/subtract from requested zoom
+    api_key: null                   # normally read from env GOOGLE_MAPS_API_KEY
+
+# -----------------------------
+# Local Imagery API (System B)
+# -----------------------------
 imagery_api:
   host: "127.0.0.1"
   port: 8000
-  # Full URL used by scripts (derived from host/port, override if proxied)
   base_url: "http://127.0.0.1:8000/imagery"
 
+# -----------------------------
+# Correlation (System C)
+# -----------------------------
 correlation:
-  # ORB feature extractor
+  # ORB features
   orb_nfeatures: 2000
   orb_fast_threshold: 12
   # Geometric verification
   ransac_reproj_px: 3.0
   min_inliers: 40
   # Decisioning
-  conf_gate: 0.6        # C must meet/exceed to be forwarded to D
-  # (optional) PnP fallback toggles/placeholders
+  conf_gate: 0.6
+  # (Optional) PnP fallback placeholders
   pnp_enabled: false
   pnp_min_inliers: 25
 
+# -----------------------------
+# Fusion / PX4 Bridge (System D)
+# -----------------------------
 fusion:
-  # D → PX4: recommended path is GPS_INPUT so EKF2 fuses as pseudo-GNSS
-  method: "gps_input"            # or "vision_pose"
+  # Preferred: publish as GPS_INPUT so EKF2 fuses like GNSS
+  method: "gps_input"             # or "vision_pose"
   publish_rate_hz: 10
-  conf_gate: 0.6                 # D will not publish below this
+  conf_gate: 0.6                  # ignore GeoFix below this
   px4_url: "udpout:127.0.0.1:14540"
-  # Mapping from C’s covariance to GPS_INPUT accuracies (simple heuristic)
+
+  # Map C’s covariance → GPS_INPUT accuracies (heuristics)
   horiz_acc_min_m: 3.0
   horiz_acc_max_m: 25.0
   vert_acc_floor_m: 6.0
   speed_accuracy_mps: 0.5
   satellites_visible: 10
 
+# -----------------------------
+# Logging / Dashboard
+# -----------------------------
 logging:
   level: "INFO"
   logs_dir: "logs"
