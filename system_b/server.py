@@ -1,67 +1,110 @@
-﻿from fastapi import FastAPI, Query
-from fastapi.responses import Response, JSONResponse
-from .google_maps import GoogleMapsService
+﻿from __future__ import annotations
+
 import json
+import os
+from pathlib import Path
+from typing import Dict, Optional
 
-app = FastAPI()
+import uvicorn
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse, Response
+from fastapi.middleware.cors import CORSMiddleware
+import yaml
 
-# Initialize Google Maps service
-try:
-    google_maps = GoogleMapsService()
-    print("  Google Maps API service initialized successfully")
-except ValueError as e:
-    print(f"   Google Maps API not available: {e}")
-    google_maps = None
+from system_b.tile_cache import TileCache
+from system_b.dem import DEM
 
-@app.get("/imagery")
-def imagery(lat: float = Query(...), lon: float = Query(...), zoom: int = Query(15)):
-    """
-    Get satellite imagery from Google Static Maps API
-    
-    Args:
-        lat: Latitude
-        lon: Longitude
-        zoom: Zoom level (0-20, default 15)
-    
-    Returns:
-        PNG image with X-Geo-Metadata header
-    """
-    if google_maps is None:
-        return JSONResponse(
-            {"error": "Google Maps API not configured. Set GOOGLE_MAPS_API_KEY environment variable."}, 
-            status_code=503
-        )
-    
-    # Get static map from Google Maps API
-    tile = google_maps.get_static_map(lat=lat, lon=lon, zoom=zoom)
-    
-    if tile is None:
-        return JSONResponse({"error": "Failed to fetch imagery from Google Maps API"}, status_code=404)
-    
-    # Return image with metadata
-    return Response(
-        tile.image_data, 
-        media_type="image/png",
-        headers={"X-Geo-Metadata": json.dumps(tile.meta)}
-    )
+
+def _load_config(path: str = "config/params.yaml") -> Dict:
+    if not Path(path).exists():
+        # minimal defaults if config absent
+        return {
+            "tiles": {"cache_root": "data/tiles"},
+            "fusion": {"px4_url": "udpout:127.0.0.1:14540"},
+            "aoi": {"home_lat": 38.8895, "home_lon": -77.0352, "home_alt_m": 40},
+            "logging": {"metrics_file": "logs/metrics.jsonl"},
+        }
+    return yaml.safe_load(open(path, "r"))
+
+
+P = _load_config()
+
+# Instances
+cache_root = P.get("tiles", {}).get("cache_root", "data/tiles")
+tile_cache = TileCache(cache_root)
+dem = DEM(P.get("tiles", {}).get("dem_path", "data/dem/dem.tif"))
+
+app = FastAPI(title="A-PNT Imagery API", version="1.0.0")
+
+# (Optional) CORS for local dev tools
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # restrict as needed
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/health")
-def health_check():
-    """Health check endpoint"""
+def health():
+    return {"status": "ok", "tiles": tile_cache.stats(), "dem": {"exists": dem.exists}}
+
+
+@app.get("/stats")
+def stats():
+    return {"tiles": tile_cache.stats()}
+
+
+@app.get("/nearest")
+def nearest(lat: float = Query(...), lon: float = Query(...), zoom: int = Query(18)):
+    t = tile_cache.get_best_tile(lat=lat, lon=lon, zoom=zoom)
+    if t is None:
+        raise HTTPException(status_code=404, detail="no_tiles_indexed")
+    z, x, y = t.zxy
     return {
-        "status": "healthy",
-        "google_maps_available": google_maps is not None,
-        "service": "System B - Imagery Server"
+        "z": z,
+        "x": x,
+        "y": y,
+        "has_image": os.path.exists(str(Path(cache_root) / f"{z}/{x}/{y}.png")),
+        "meta": t.geo_metadata,
     }
 
-@app.get("/")
-def root():
-    """Root endpoint with API information"""
-    return {
-        "service": "System B - Imagery Server",
-        "endpoints": {
-            "/imagery": "GET satellite imagery (lat, lon, zoom)",
-            "/health": "GET service health status"
-        },
-        "google_maps_available": google_maps is not None
+
+@app.get("/imagery")
+def imagery(lat: float = Query(...), lon: float = Query(...), zoom: int = Query(18)):
+    """
+    Return PNG image bytes with `X-Geo-Metadata` header (JSON).
+    """
+    t = tile_cache.get_best_tile(lat=lat, lon=lon, zoom=zoom)
+    if t is None:
+        return JSONResponse({"error": "tile_not_found"}, status_code=404)
+    # Ensure the image exists
+    try:
+        img = t.image_bytes
+    except FileNotFoundError:
+        return JSONResponse({"error": "image_file_missing"}, status_code=404)
+
+    headers = {
+        "X-Geo-Metadata": json.dumps(t.geo_metadata),
+        "Cache-Control": "public, max-age=60",
+        "X-Tile-Z": str(t.zxy[0]),
+        "X-Tile-X": str(t.zxy[1]),
+        "X-Tile-Y": str(t.zxy[2]),
     }
+    return Response(content=img, media_type="image/png", headers=headers)
+
+
+@app.get("/dem")
+def dem_endpoint(lat: float = Query(...), lon: float = Query(...)):
+    """
+    Return elevation for (lat,lon). If DEM missing, uses a 50 m default.
+    """
+    lon_, lat_, elev = dem.xyz(lat, lon)
+    return {"lat": lat_, "lon": lon_, "elev_m": elev, "dem_exists": dem.exists}
+
+
+# -------- local dev entrypoint --------
+if __name__ == "__main__":
+    # Allow `python -m system_b.server` for local runs
+    uvicorn.run(app, host="0.0.0.0", port=8000)
