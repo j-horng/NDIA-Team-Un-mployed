@@ -1,8 +1,36 @@
-﻿[tool.ruff]
-line-length = 100
-target-version = "py311"
-select = ["E","F","I","W"]
+﻿[project]
+name = "apnt-uas-sos"
+version = "0.1.0"
+description = "A-PNT for UAS via Satellite Imagery & Sensor Correlation (ABCD System-of-Systems)"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Maximus Hackathon Team" }]
+
+# We keep runtime deps in requirements.txt to simplify hackathon workflows.
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+testpaths = ["tests"]
 addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I"]
+ignore = ["E203"]  # allow black-style slices
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = '''
+/(
+  data
+ |logs
+ |.venv
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["common", "system_a", "system_b", "system_c", "system_d"]

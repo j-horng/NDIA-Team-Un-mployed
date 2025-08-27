@@ -1,7 +1,87 @@
-﻿services:
+﻿version: "3.9"
+
+x-base: &base
+  image: python:3.11-slim
+  working_dir: /app
+  tty: true
+  stdin_open: true
+  environment:
+    PYTHONDONTWRITEBYTECODE: "1"
+    PYTHONUNBUFFERED: "1"
+  volumes:
+    - ./:/app
+
+services:
+  # One-shot initializer: builds a tiny local tile/DEM cache so the API has data.
+  seed:
+    <<: *base
+    command: >
+      bash -lc "
+        pip install --no-cache-dir -r requirements.txt &&
+        python scripts/build_tile_cache.py --aoi config/area_of_interest.geojson --zoom 17 18
+      "
+    restart: "no"
+
+  # System B — Imagery API
   imagery:
-    command: uvicorn system_b.server:app --host 0.0.0.0 --port 8000
-    image: python:3.11-slim
-    working_dir: /app
-    volumes: [".:/app"]
-    ports: ["8000:8000"]
+    <<: *base
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    environment:
+      # Optional: only used if you enable the Google provider in config/params.yaml
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+    command: >
+      bash -lc "
+        pip install --no-cache-dir -r requirements.txt &&
+        uvicorn system_b.server:app --host 0.0.0.0 --port 8000
+      "
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  # System C — Correlation & GeoFix emitter
+  system_c:
+    <<: *base
+    depends_on:
+      imagery:
+        condition: service_started
+    command: >
+      bash -lc "
+        pip install --no-cache-dir -r requirements.txt &&
+        python -m system_c.pipeline --config config/params.yaml --rate 5.0
+      "
+    restart: unless-stopped
+
+  # System D — MAVLink fusion bridge (PX4 EKF2). Disabled by default via profile.
+  # Enable with:  docker compose --profile px4 up system_d
+  system_d:
+    <<: *base
+    profiles: ["px4"]
+    depends_on:
+      system_c:
+        condition: service_started
+    command: >
+      bash -lc "
+        pip install --no-cache-dir -r requirements.txt &&
+        python -m system_d.fusion_px4 --config config/params.yaml --method gps_input --rate 10
+      "
+    # Expects PX4 heartbeat on udpout:127.0.0.1:14540 (see config). Use SITL or point to real PX4.
+    restart: unless-stopped
+
+  # Dashboard (Streamlit)
+  dashboard:
+    <<: *base
+    depends_on:
+      imagery:
+        condition: service_started
+      system_c:
+        condition: service_started
+    command: >
+      bash -lc "
+        pip install --no-cache-dir -r requirements.txt &&
+        streamlit run dashboard/app.py --server.address=0.0.0.0 --server.port=8501
+      "
+    ports:
+      - "8501:8501"
+    restart: unless-stopped

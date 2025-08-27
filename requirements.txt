@@ -1,16 +1,23 @@
-﻿opencv-python
+﻿# Core
 numpy
-pyyaml
+opencv-python-headless
+PyYAML
+requests
+
+# Web/API & UI
 fastapi
 uvicorn
-pydantic
-onnxruntime
-pyproj
-rasterio
-GDAL
-pymavlink
-mavsdk
 streamlit
+
+# Geo / Raster
+rasterio
+
+# MAVLink / PX4
+pymavlink
+
+# Testing
 pytest
+httpx
+
+# Dev tooling (optional)
 ruff
-requests
