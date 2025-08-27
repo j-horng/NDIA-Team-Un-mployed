@@ -1,0 +1,19 @@
+{
+  "geotransform": [
+    -122.43825237520124,
+    4.291534423828125e-05,
+    0.0,
+    37.79361906916869,
+    0.0,
+    -3.391271125963158e-05
+  ],
+  "size": "1280x1280",
+  "crs": "EPSG:4326",
+  "maptype": "satellite",
+  "zoom": 15,
+  "center_lat": 37.771911751176134,
+  "center_lon": -122.41078655488874,
+  "scale": 2,
+  "format": "png",
+  "source": "google_static_maps"
+}

@@ -22,12 +22,19 @@ from system_b.google_maps import GoogleMapsService
 def calculate_sha256(data: bytes) -> str:
     """Calculate SHA256 hash of data"""
     return hashlib.sha256(data).hexdigest()
+
 def fetch_image_with_metadata(google_maps: GoogleMapsService, lat: float, lon: float, zoom: int = 15) -> Dict[str, Any]:
     """Fetch image and metadata for given coordinates"""
 
     try:
+        # Start timing
+        start_time = time.time()
+        
         # Fetch satellite image
         result = google_maps.get_static_map(lat, lon, zoom, maptype="satellite")
+        
+        # Calculate latency
+        latency_ms = int((time.time() - start_time) * 1000)
 
         if result:
             # Calculate hash
@@ -38,7 +45,7 @@ def fetch_image_with_metadata(google_maps: GoogleMapsService, lat: float, lon: f
                 "lat": lat,
                 "lon": lon,
                 "zoom": zoom,
-                "latency_ms": 0,  # Not tracked in this implementation
+                "latency_ms": latency_ms,
                 "bytes": len(result.image_data),
                 "sha256": sha256_hash,
                 "image_data": result.image_data,
@@ -56,6 +63,8 @@ def fetch_image_with_metadata(google_maps: GoogleMapsService, lat: float, lon: f
             }
 
     except Exception as e:
+        # Calculate latency even for errors
+        latency_ms = int((time.time() - start_time) * 1000)
         return {
             "status": "error",
             "lat": lat,
@@ -63,7 +72,8 @@ def fetch_image_with_metadata(google_maps: GoogleMapsService, lat: float, lon: f
             "zoom": zoom,
             "error": str(e),
             "image_data": None,
-            "metadata": {}
+            "metadata": {},
+            "latency_ms": latency_ms
         }
 
 def load_kaggle_dataset(file_path: str, max_rows: int = 1000) -> List[Dict[str, Any]]:
@@ -102,7 +112,7 @@ def load_kaggle_dataset(file_path: str, max_rows: int = 1000) -> List[Dict[str, 
 def main():
     """Main function to fetch Kaggle dataset images"""
     
-    # Configuration
+                   # Configuration
     dataset_file = "data/uav_navigation_dataset.csv"
     output_dir = Path("data/kaggle_dataset_images")
     max_images = 1000
@@ -222,10 +232,21 @@ def main():
     print(f"  Failed: {failed_fetches}")
     print(f"  Total: {len(dataset_rows)}")
     print(f"  Index saved to: {index_path}")
-    
+
     if successful_fetches > 0:
         total_size = sum(entry.get("bytes", 0) for entry in index_entries if entry["status"] == "success")
         print(f"  Total size: {total_size / (1024*1024):.1f} MB")
+        
+        # Calculate latency statistics
+        latencies = [entry.get("latency_ms", 0) for entry in index_entries if entry["status"] == "success"]
+        if latencies:
+            avg_latency = sum(latencies) / len(latencies)
+            min_latency = min(latencies)
+            max_latency = max(latencies)
+            print(f"  Latency stats:")
+            print(f"    Average: {avg_latency:.1f} ms")
+            print(f"    Min: {min_latency} ms")
+            print(f"    Max: {max_latency} ms")
     
     return successful_fetches > 0
 
