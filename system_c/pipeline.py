@@ -28,7 +28,8 @@ def _load_yaml(path: str) -> Dict:
 
 
 def _aoi_center(geojson_path: str) -> Tuple[float, float]:
-    g = json.loads(Path(geojson_path).read_text())
+    # Handle files that may contain a UTF-8 BOM
+    g = json.loads(Path(geojson_path).read_text(encoding="utf-8-sig"))
     ring = g["features"][0]["geometry"]["coordinates"][0]
     xs = [float(x) for x, _ in ring]
     ys = [float(y) for _, y in ring]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Iterable, Optional, Deque, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from collections import deque
 import time
@@ -32,7 +32,7 @@ class RateTimer:
             hz = rt.tick()
     """
     window: int = 50
-    _times: Deque[float] = deque(maxlen=50)
+    _times: Deque[float] = field(default_factory=deque, init=False)
 
     def __post_init__(self) -> None:
         self._times = deque(maxlen=self.window)
