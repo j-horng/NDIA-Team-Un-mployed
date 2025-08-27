@@ -30,7 +30,9 @@ from rasterio.warp import calculate_default_transform, reproject, Resampling
 
 
 def load_aoi_bbox(geojson_path: str) -> Tuple[float, float, float, float]:
-    gj = json.loads(Path(geojson_path).read_text())
+    # Read with utf-8-sig to gracefully handle files that include a UTF-8 BOM
+    gj_text = Path(geojson_path).read_text(encoding="utf-8-sig")
+    gj = json.loads(gj_text)
     coords = gj["features"][0]["geometry"]["coordinates"][0]
     xs = [float(x) for x, _ in coords]
     ys = [float(y) for _, y in coords]
