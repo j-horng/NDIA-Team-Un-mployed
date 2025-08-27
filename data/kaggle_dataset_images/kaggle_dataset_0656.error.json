@@ -1,0 +1,23 @@
+{
+  "status": "error",
+  "lat": 37.767451606055914,
+  "lon": -122.42680285973164,
+  "error": "Failed to fetch image",
+  "dataset_row": {
+    "timestamp": "2023-01-01 00:10:55",
+    "latitude": 37.767451606055914,
+    "longitude": -122.42680285973164,
+    "altitude": 470.5511326444768,
+    "imu_acc_x": -1.488550407795471,
+    "imu_acc_y": 1.8667072364441708,
+    "imu_acc_z": 2.2515696459479875,
+    "imu_gyro_x": -105.37800989433346,
+    "imu_gyro_y": 145.486794176996,
+    "imu_gyro_z": 126.8873779973528,
+    "lidar_distance": 69.10527382429326,
+    "speed": 13.081197715016392,
+    "wind_speed": 7.416799926449511,
+    "battery_level": 47.338287407892864,
+    "obstacle_detected": 0
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "status": "error",
+  "lat": 37.776922300234865,
+  "lon": -122.42576364694324,
+  "error": "'GoogleMapsService' object has no attribute 'get_satellite_image'",
+  "dataset_row": {
+    "timestamp": "2023-01-01 00:00:08",
+    "latitude": 37.776922300234865,
+    "longitude": -122.42576364694324,
+    "altitude": 393.3269953302025,
+    "imu_acc_x": 0.0237946789523606,
+    "imu_acc_y": 1.257406298388366,
+    "imu_acc_z": -0.9728572251783004,
+    "imu_gyro_x": 67.29188675669334,
+    "imu_gyro_y": -29.84027707238076,
+    "imu_gyro_z": 3.4463486973748445,
+    "lidar_distance": 15.733190767301052,
+    "speed": 14.338762223628107,
+    "wind_speed": 14.821920071036756,
+    "battery_level": 36.22192630209392,
+    "obstacle_detected": 0
+  }
+}
