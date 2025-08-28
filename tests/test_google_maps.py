@@ -18,7 +18,7 @@ def test_google_maps_api():
     """Test the Google Maps API integration"""
     
     # Set the API key from the URL you provided
-    api_key = "AIzaSyA4CrTjx8pIVmQ3yBgN8wVDSGQbIm00bW8"
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
     
     # Test coordinates from your URL
     lat = 38.872
